@@ -12,7 +12,6 @@ logger.setLevel(logging.DEBUG)
 
 app = Flask(__name__)
 
-
 @app.route("/")
 def index():
     data = {"hi": "Congratulations, it's a web app!"}

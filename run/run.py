@@ -9,8 +9,8 @@ import logging
 import csv
 
 
-LOG_FILE = "/Users/kanavgupta/Desktop/pollytrading/run/daily_files/" + datetime.date.today().isoformat() + "_log_file.log"
-RUNNING_FILE = "/Users/kanavgupta/Desktop/pollytrading/run/daily_files/" + datetime.date.today().isoformat() + "_action_2.csv"
+LOG_FILE = "/home/ubuntu/pollytrading/run/daily_files/" + datetime.date.today().isoformat() + "_log_file.log"
+RUNNING_FILE = "/home/ubuntu/pollytrading/run/daily_files/" + datetime.date.today().isoformat() + "_action_2.csv"
 
 THRESHOLD = 0.10
 

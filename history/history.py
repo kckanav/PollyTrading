@@ -8,8 +8,8 @@ import xlsxwriter
 import logging
 
 
-WRITE_FILE_NAME = "/Users/kanavgupta/Desktop/pollytrading/history/daily_files/generated_history/" + constants.HIST_SYMBOL_DATA_DICT_FILE
-READ_FILE_NAME = "/Users/kanavgupta/Desktop/pollytrading/history/daily_files/historical_data/" + "DATA-22.xlsx"
+WRITE_FILE_NAME = "/home/ubuntu/pollytrading/history/daily_files/generated_history/" + constants.HIST_SYMBOL_DATA_DICT_FILE
+READ_FILE_NAME = "/home/ubuntu/pollytrading/history/daily_files/historical_data/" + "DATA-22.xlsx"
 
 TRADE_FILE_MARKER = 1
 DATA_FILE_MARKER = 2

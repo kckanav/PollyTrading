@@ -6,7 +6,7 @@ from kiteconnect import KiteConnect
 import json
 import webbrowser
 import logging
-
+import os
 
 ZER_SYMBOL_NAME = "name"
 ZER_LOT_SIZE = "lot_size"
@@ -18,7 +18,7 @@ ZER_EXPIRY = 'expiry'
 ZER_SEGMENT = 'segment'
 ZER_FUTURE_SEGMENT = "NFO-FUT"
 
-LOG_FILE_NAME = "/Users/kanavgupta/Desktop/pollytrading/api/daily_files/" + datetime.date.today().isoformat() + "_log_file.log"
+LOG_FILE_NAME = "/home/ubuntu/pollytrading/api/daily_files/" + datetime.date.today().isoformat() + "_log_file.log"
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -101,14 +101,12 @@ def login(request_token = None):
     FILE FORMAT :- [api_key, api_secret, access_key] (extract through JSON)
     USER :- Run the method. Login into Zerodha. Paste the redirected URL here.
     """
-    kc = KiteConnect(constants.API_KEY)
+    kc = KiteConnect(os.environ["ZERODHA_API_KEY"])
     if request_token is None:
-        webbrowser.open_new_tab(kc.login_url())
-        request_token_url = input("Please Enter request token url\n")
-        parsed_url = urlparse(request_token_url)
-        request_token = parse_qs(parsed_url.query)['request_token'][0]
+        return None
     print(request_token)
-    kc.generate_session(request_token, constants.API_SECRET)
+
+    kc.generate_session(request_token, os.environ["ZERODHA_API_SECRET"])
 
     print("Login Sucessful! \n Welcome {}".format(kc.profile()['user_name']))
 
