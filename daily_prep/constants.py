@@ -2,13 +2,10 @@ import datetime
 import datetime as dt
 
 
-API_KEY = "axvi4du8iyg02tbn"
-API_SECRET = "iq3rqcmy0a41mhdm7wgacyz3u9l0jw6g"
-
-DATA_DIRECTORY = "/Users/kanavgupta/Desktop/pollytrading/daily_prep/daily_files/"
+DATA_DIRECTORY = "/home/ubuntu/pollytrading/daily_prep/daily_files/"
 HIST_SYMBOL_DATA_DICT_FILE = dt.date.today().isoformat() + "_hist_sym_data_dict.json"
 
-CREDENTIALS_DIRECTORY = "/Users/kanavgupta/Desktop/pollytrading/api/daily_files/"
+CREDENTIALS_DIRECTORY = "/home/ubuntu/pollytrading/api/daily_files/"
 TODAY_CREDENTIALS_FILE = dt.date.today().isoformat() + "_today_credentials_list.json"
 
 TODAY_LOG_FILE = DATA_DIRECTORY + dt.date.today().isoformat() + "_log_file.log"

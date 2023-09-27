@@ -2,7 +2,7 @@ import datetime
 from urllib.parse import urlparse, parse_qs
 from daily_prep import constants
 from util.symbol import Symbol
-from kiteconnect import KiteConnect
+from kiteconnect import KiteConnect, exceptions
 import json
 import webbrowser
 import logging
@@ -19,6 +19,7 @@ ZER_SEGMENT = 'segment'
 ZER_FUTURE_SEGMENT = "NFO-FUT"
 
 LOG_FILE_NAME = "/home/ubuntu/pollytrading/api/daily_files/" + datetime.date.today().isoformat() + "_log_file.log"
+CREDENTIALS_FILE = constants.CREDENTIALS_DIRECTORY + constants.TODAY_CREDENTIALS_FILE
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -28,18 +29,6 @@ file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 
 
-def create_symbols_with_api_info():
-    instrument_codes_list = get_instrument_codes()
-    api_info = dict()
-    for instrument in instrument_codes_list:
-        curr_symbol_name = instrument['name']
-        api_info[curr_symbol_name] = {
-            Symbol.TRADING_SYMBOL: instrument[ZER_TRADING_SYMBOL],
-            Symbol.INSTRUMENT_TOKEN: instrument[ZER_INSTRUMENT_TOKEN],
-            Symbol.EXCHANGE: instrument[ZER_EXCHANGE]
-        }
-
-    return api_info
 
 def get_instrument_codes():
     """
@@ -59,7 +48,6 @@ def get_instrument_codes():
             ZER_EXPIRY] == constants.EXPIRY_DATE_2) and instrument[ZER_SEGMENT] == ZER_FUTURE_SEGMENT:
             ret_instruments_list.append(instrument)
 
-
     logger.info("Instrument Codes Extracted for {} symbols through API".format(len(ret_instruments_list)))
     return ret_instruments_list
 
@@ -69,28 +57,19 @@ def get_kiteconnect_instance():
     Returns a KiteConnect instance using the file "daily_prep/YYYY-MM-DD_connect_codes.json
     :return: A connected and live KiteConnect instance
     """
-    file_name = constants.CREDENTIALS_DIRECTORY + constants.TODAY_CREDENTIALS_FILE
-
-    try:
-        with open(file_name, 'r') as f:
-            api_key, api_secret, access_key = json.load(f)
-
-        logger.info("KiteConnect instance created")
-        return KiteConnect(api_key, access_key)
-
-    # TODO: Add Invalid credentials/token so that they can login again.
-    except FileNotFoundError:
-        kc = login()
+    with open(CREDENTIALS_FILE, 'r') as f:
+        access_token = json.load(f)[0]
+        kc = KiteConnect(os.environ["ZERODHA_API_KEY"], access_token)
         logger.info("KiteConnect instance created")
         return kc
 
 
 def login_url():
-    kc = KiteConnect(constants.API_KEY)
+    kc = KiteConnect(os.environ["ZERODHA_API_KEY"])
     return kc.login_url()
 
 
-def login(request_token = None):
+def login_with_request_token(request_token):
     """
     This method executes the login procedure through zerodha.py. It creates a file,
     daily_prep/"YYYY-MM-DD" + "_connect_codes.json", which has [api_key, api_secret, access_key]
@@ -101,30 +80,39 @@ def login(request_token = None):
     FILE FORMAT :- [api_key, api_secret, access_key] (extract through JSON)
     USER :- Run the method. Login into Zerodha. Paste the redirected URL here.
     """
+
     kc = KiteConnect(os.environ["ZERODHA_API_KEY"])
-    if request_token is None:
-        return None
     print(request_token)
 
     kc.generate_session(request_token, os.environ["ZERODHA_API_SECRET"])
-
     print("Login Sucessful! \n Welcome {}".format(kc.profile()['user_name']))
 
-    file_name = constants.CREDENTIALS_DIRECTORY + constants.TODAY_CREDENTIALS_FILE
-    with open(file_name, "w") as f:
-        json.dump([constants.API_KEY, constants.API_SECRET, kc.access_token], f)
+    with open(CREDENTIALS_FILE, "w") as f:
+        json.dump([kc.access_token], f)
+    logger.info("Access Token created and stored")
 
-    logger.info("Access Token created and stored at {}".format(file_name))
-    return kc
+    # try:
+    #     kc = KiteConnect(os.environ["ZERODHA_API_KEY"])
+    #     print(request_token)
 
+    #     kc.generate_session(request_token, os.environ["ZERODHA_API_SECRET"])
+    #     print("Login Sucessful! \n Welcome {}".format(kc.profile()['user_name']))
 
-def zerodha_web_login(request_token):
-    if request_token is None:
-        return "Invalid Request Token"
-    else:
-        return login(request_token)
+    #     with open(CREDENTIALS_FILE, "w") as f:
+    #         json.dump([kc.access_token], f)
+    #     logger.info("Access Token created and stored")
 
+    # except KeyError:
+    #     logger.error("Could not find zerodha environment variables")
+    #     return 500, 'Zerodha credentials not set'
 
-if __name__ == '__main__':
-    create_symbols()
+    # except exceptions.KiteException:
+    #     logger.error("KiteException")
+    #     return 500, 'Kite Internal Error'
+
+    # except exceptions.TokenException:
+    #     logger.error("Invalid Request Token entered")
+    #     return 500, 'Request Token is invalid or has expired.'
+
+    # return 200, 'Logged In'
 

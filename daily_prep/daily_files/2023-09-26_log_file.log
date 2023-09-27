@@ -1,0 +1,7 @@
+2023-09-26 13:00:46,544:daily_prep.morning_routine:Historical Symbol Data file created at /home/ubuntu/pollytrading/daily_prep/daily_files/2023-09-26_hist_sym_data_dict.json
+2023-09-26 13:01:14,889:daily_prep.morning_routine:Number of Symbols MISMATCH: Loaded Symbols = 186 from /home/ubuntu/pollytrading/daily_prep/daily_files/2023-09-26_hist_sym_data_dict.json | Expected = 187 
+2023-09-26 13:07:00,991:daily_prep.morning_routine:Number of Symbols MISMATCH: Loaded Symbols = 186 from /home/ubuntu/pollytrading/daily_prep/daily_files/2023-09-26_hist_sym_data_dict.json | Expected = 187 
+2023-09-26 13:07:11,976:daily_prep.morning_routine:Number of Symbols MISMATCH: Loaded Symbols = 186 from /home/ubuntu/pollytrading/daily_prep/daily_files/2023-09-26_hist_sym_data_dict.json | Expected = 187 
+2023-09-26 13:11:47,606:daily_prep.morning_routine:Number of Symbols MISMATCH: Loaded Symbols = 186 from /home/ubuntu/pollytrading/daily_prep/daily_files/2023-09-26_hist_sym_data_dict.json | Expected = 187 
+2023-09-26 13:14:06,883:daily_prep.morning_routine:Number of Symbols MISMATCH: Loaded Symbols = 186 from /home/ubuntu/pollytrading/daily_prep/daily_files/2023-09-26_hist_sym_data_dict.json | Expected = 187 
+2023-09-26 13:16:06,593:daily_prep.morning_routine:Number of Symbols MISMATCH: Loaded Symbols = 186 from /home/ubuntu/pollytrading/daily_prep/daily_files/2023-09-26_hist_sym_data_dict.json | Expected = 187 

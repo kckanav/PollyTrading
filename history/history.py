@@ -203,7 +203,7 @@ def return_history_from_stock_xslx(filename):
         logger.warning("Unexpected number of symbols. Expected: USER_TOTAL_NUMBER_OF_SYMBOLS = {}."
                        " Symbols added from file = {}".format(constants.USER_TOTAL_NUMBER_OF_SYMBOLS, count))
     logger.info("Historical data loaded for {} symbols from {} ".format(count, filename))
-    return instruments
+    return [x for x in instruments.values()]
 
 
 def return_history_from_trade_xslx(filename):
@@ -258,7 +258,7 @@ def return_history_from_trade_xslx(filename):
                 constants.USER_TOTAL_NUMBER_OF_SYMBOLS, count))
 
     logger.info("Historical data loaded for {} symbols from {} ".format(count, filename))
-    return instruments
+    return [x for x in instruments.values()]
 
 
 def write(symbols: [Symbol]):

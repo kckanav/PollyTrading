@@ -135,10 +135,9 @@ def run():
             current_avg = quote["average_price"]
 
             check_update(symbol, curr_vol, current_avg, timestamp)
-            print(symbol.name, symbol.curr_data[symbol.CURRENT_PRICE], current_avg)
 
         write(all_symbols_list)
         logger.info("Successfully written at {}".format(datetime.datetime.now()))
-        time.sleep(60 * 6)
+        time.sleep(10)
 
 
