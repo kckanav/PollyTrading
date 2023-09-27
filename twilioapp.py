@@ -1,3 +1,4 @@
+import os
 import webbrowser
 
 from flask import Flask, request, render_template, flash, redirect
@@ -66,6 +67,7 @@ def auth():
 
 @app.route("/ins")
 def ins_list():
+
   return zerodha.get_instrument_codes()
 
 
@@ -81,4 +83,5 @@ def this_data(data):
 
 
 if __name__ == "__main__":
-    app.run()
+    print(os.path.curdir.title())
+    # app.run()

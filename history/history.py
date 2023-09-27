@@ -1,15 +1,11 @@
 import json
 from util.symbol import Symbol
-from daily_prep import constants
+import constants
 import pandas as pd
 from collections import defaultdict
 import csv
 import xlsxwriter
 import logging
-
-
-WRITE_FILE_NAME = "/home/ubuntu/pollytrading/history/daily_files/generated_history/" + constants.HIST_SYMBOL_DATA_DICT_FILE
-READ_FILE_NAME = "/home/ubuntu/pollytrading/history/daily_files/historical_data/" + "DATA-22.xlsx"
 
 TRADE_FILE_MARKER = 1
 DATA_FILE_MARKER = 2
@@ -49,11 +45,16 @@ AVG_DELTA = '% Avg'
 CURRENT_PRICE = "Current"
 PRICE_DIFF = "Diff"
 
+
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
+file_handler = logging.FileHandler(constants.HISTORY_LOG_FILE)
+formatter = logging.Formatter('%(asctime)s:%(name)s:%(message)s')
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
 
 
-def load_all_symbols(file_name = WRITE_FILE_NAME):
+def load_all_symbols(file_name = constants.HISTORY_GENERATED_FILE):
     """
     Loads all symbols from {CONSTANTS.HIST_SYMBOL_DATA_DICT_FILE} which is list of Symbol
     :return: A list of Symbol objects. [Symbol, Symbol, ...]
@@ -73,15 +74,15 @@ def load_all_symbols(file_name = WRITE_FILE_NAME):
     if len(all_symbols_list) != constants.USER_TOTAL_NUMBER_OF_SYMBOLS:
         logger.warning(
             "Number of Symbols MISMATCH: Loaded Symbol Objects = {} from {} | Expected = {} ".format(len(all_symbols_list),
-                                                                                              file_name,
-                                                                                              constants.USER_TOTAL_NUMBER_OF_SYMBOLS))
+                                                                                                     file_name,
+                                                                                                     constants.USER_TOTAL_NUMBER_OF_SYMBOLS))
     else:
         logger.info("Created {} Symbol Objects from {}".format(len(all_symbols_list), file_name))
 
     return all_symbols_list
 
 
-def save_and_return_history(in_file=READ_FILE_NAME, marker=DATA_FILE_MARKER, out_file=WRITE_FILE_NAME):
+def save_and_return_history(in_file=constants.HISTORY_USER_UPLOADED_FILE, marker=DATA_FILE_MARKER, out_file=constants.HISTORY_GENERATED_FILE):
     """
     TODO :- Compute the marker based on the name of the in_file. Eg:- if it contains TRADE, marker is Trade instead
             explicitly asking for a marker as a parameter.

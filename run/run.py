@@ -1,6 +1,6 @@
 import datetime
 
-from daily_prep import constants
+import constants
 from util.symbol import Symbol
 from daily_prep import morning_routine
 from api import zerodha
@@ -8,15 +8,9 @@ import time
 import logging
 import csv
 
-
-LOG_FILE = "/home/ubuntu/pollytrading/run/daily_files/" + datetime.date.today().isoformat() + "_log_file.log"
-RUNNING_FILE = "/home/ubuntu/pollytrading/run/daily_files/" + datetime.date.today().isoformat() + "_action_2.csv"
-
-THRESHOLD = 0.10
-
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-file_handler = logging.FileHandler(LOG_FILE)
+file_handler = logging.FileHandler(constants.RUNTIME_LOG_FILE)
 formatter = logging.Formatter('%(asctime)s:%(name)s:%(message)s')
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
@@ -32,7 +26,7 @@ def write(symbols: [Symbol]):
         rows.append(symbol.gen_string_for_trade_xslx())
 
     # name of csv file
-    filename = RUNNING_FILE
+    filename = constants.RUNTIME_GENERATED_FILE
 
     # writing to csv file
     with open(filename, 'a') as csvfile:
@@ -89,7 +83,7 @@ def check_update(symbol, curr_vol, current_avg, timestamp):
 
     price_diff = current_price - symbol.curr_data[symbol.CURRENT_PRICE]
 
-    if symbol.curr_data[symbol.LAST_VOL] != 0 and curr_quantity_delta >= THRESHOLD:
+    if symbol.curr_data[symbol.LAST_VOL] != 0 and curr_quantity_delta >= constants.D_QTY_PERCENTAGE_ALERT:
         symbol.actionable = True
         logger.info("   Found one at {} with D.QTY = {} ".format(symbol.name, curr_quantity_delta))
         symbol.curr_data[symbol.NUMBER_OF_TICKS] += 1
@@ -119,9 +113,9 @@ def run():
     instrument_token_to_name_map = dict()
 
     for symbol in all_symbols_list:
-        instrument_string = symbol.zerodha_info['exchange'] + ":" + symbol.zerodha_info['trading_symbol']
+        instrument_string = symbol.zerodha_info[symbol.EXCHANGE] + ":" + symbol.zerodha_info[symbol.TRADING_SYMBOL]
         instrument_list_for_zerodha.append(instrument_string)
-        instrument_token_to_name_map[symbol.zerodha_info['instrument_token']] = symbol
+        instrument_token_to_name_map[symbol.zerodha_info[symbol.INSTRUMENT_TOKEN]] = symbol
 
     kite = zerodha.get_kiteconnect_instance()
     logger.info("Starting The Cyclic Application")
@@ -129,15 +123,14 @@ def run():
         current_quotes = kite.quote(instrument_list_for_zerodha)
         for q in current_quotes:
             quote = current_quotes[q]
-            symbol = instrument_token_to_name_map[quote['instrument_token']]
-            curr_vol = quote["volume"]
-            timestamp = quote["timestamp"]
-            current_avg = quote["average_price"]
+            symbol = instrument_token_to_name_map[quote[zerodha.ZER_INSTRUMENT_TOKEN]]
+            curr_vol = quote[zerodha.ZER_VOLUME]
+            timestamp = quote[zerodha.ZER_TIMESTAMP]
+            current_avg = quote[zerodha.ZER_AVG_PRICE]
 
             check_update(symbol, curr_vol, current_avg, timestamp)
 
         write(all_symbols_list)
         logger.info("Successfully written at {}".format(datetime.datetime.now()))
-        time.sleep(10)
-
+        time.sleep(constants.TIME_INTERVAL)
 

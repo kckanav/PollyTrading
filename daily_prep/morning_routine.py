@@ -3,28 +3,26 @@ import logging
 import api.zerodha
 from api import zerodha
 from history import history
-from daily_prep import constants
+import constants
 from util.symbol import Symbol
 import json
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-file_handler = logging.FileHandler(constants.TODAY_LOG_FILE)
+file_handler = logging.FileHandler(constants.MORNING_PREP_LOG_FILE)
 
 formatter = logging.Formatter('%(asctime)s:%(name)s:%(message)s')
 file_handler.setFormatter(formatter)
 
 logger.addHandler(file_handler)
 
-FILE_NAME = constants.DATA_DIRECTORY + constants.HIST_SYMBOL_DATA_DICT_FILE
-
-def get_prepared_data():
+def get_prepared_data(filename=constants.MORNING_PREP_DATA_FILE):
     """
     Loads all symbols from {CONSTANTS.HIST_SYMBOL_DATA_DICT_FILE} which is dictonary of UNDERLYING_STOCK_NAME: Symbol
     :return: A list of Symbol objects. [Symbol, Symbol, ...]
     """
     try:
-        with open(FILE_NAME, 'r') as f:
+        with open(filename, 'r') as f:
             all_symbols_json = json.load(f)
             all_symbols_list = []
             for symbol in all_symbols_json:
@@ -32,18 +30,18 @@ def get_prepared_data():
                 all_symbols_list.append(symbol)
         if len(all_symbols_list) != constants.USER_TOTAL_NUMBER_OF_SYMBOLS:
             logger.warning("Number of Symbols MISMATCH: Loaded Symbols = {} from {} | Expected = {} ".format(len(all_symbols_list),
-                                                                                                  FILE_NAME,
-                                                                                                  constants.USER_TOTAL_NUMBER_OF_SYMBOLS))
+                                                                                                             filename,
+                                                                                                             constants.USER_TOTAL_NUMBER_OF_SYMBOLS))
         else:
-            logger.info("Read {} symbols from {}".format(len(all_symbols_list), FILE_NAME))
+            logger.info("Read {} symbols from {}".format(len(all_symbols_list), filename))
 
         return all_symbols_list
 
     except FileNotFoundError:
-        return prepare()
+        return prepare(filename)
 
 
-def prepare():
+def prepare(filename=constants.MORNING_PREP_DATA_FILE):
 
     api_li = zerodha.get_instrument_codes()
     api_dict = create_symbols_with_api_info(api_li)
@@ -67,9 +65,9 @@ def prepare():
     for left_symbols in api_dict:
         logging.warning("Did not find {} symbol in historical data file".format(left_symbols))
 
-    with open(FILE_NAME, 'w') as f:
+    with open(filename, 'w') as f:
         json.dump(hist_li, f, default = vars)
-        logger.info("Historical Symbol Data file created at {}".format(FILE_NAME))
+        logger.info("Historical Symbol Data file created at {}".format(filename))
 
     return hist_li
 

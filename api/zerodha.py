@@ -1,15 +1,16 @@
 import datetime
-from urllib.parse import urlparse, parse_qs
-from daily_prep import constants
-from util.symbol import Symbol
-from kiteconnect import KiteConnect, exceptions
-import json
 import webbrowser
+from urllib.parse import urlparse, parse_qs
+
+import constants
+from kiteconnect import KiteConnect
+import json
 import logging
 import os
 
 ZER_SYMBOL_NAME = "name"
 ZER_LOT_SIZE = "lot_size"
+ZER_VOLUME = "volume"
 ZER_INSTRUMENT_TOKEN = "instrument_token"
 ZER_EXCHANGE = "exchange"
 ZER_TRADING_SYMBOL = "tradingsymbol"
@@ -17,16 +18,17 @@ ZER_STRIKE = 'strike'
 ZER_EXPIRY = 'expiry'
 ZER_SEGMENT = 'segment'
 ZER_FUTURE_SEGMENT = "NFO-FUT"
+ZER_TIMESTAMP = "timestamp"
+ZER_AVG_PRICE = "average_price"
 
-LOG_FILE_NAME = "/home/ubuntu/pollytrading/api/daily_files/" + datetime.date.today().isoformat() + "_log_file.log"
-CREDENTIALS_FILE = constants.CREDENTIALS_DIRECTORY + constants.TODAY_CREDENTIALS_FILE
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-file_handler = logging.FileHandler(LOG_FILE_NAME)
+file_handler = logging.FileHandler(constants.ZERODHA_LOG_FILE)
 formatter = logging.Formatter('%(asctime)s:%(name)s:%(message)s')
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
+
 
 
 
@@ -57,11 +59,39 @@ def get_kiteconnect_instance():
     Returns a KiteConnect instance using the file "daily_prep/YYYY-MM-DD_connect_codes.json
     :return: A connected and live KiteConnect instance
     """
-    with open(CREDENTIALS_FILE, 'r') as f:
+    with open(constants.ZERODHA_CREDENTIALS_FILE, 'r') as f:
         access_token = json.load(f)[0]
         kc = KiteConnect(os.environ["ZERODHA_API_KEY"], access_token)
         logger.info("KiteConnect instance created")
         return kc
+
+
+def login_with_terminal():
+    """
+    This method executes the login procedure through zerodha.py. It creates a file,
+    daily_prep/"YYYY-MM-DD" + "_connect_codes.json", which has [api_key, api_secret, access_key]
+    stored in it.
+
+
+    FILE CREATED :- daily_prep/"YYYY-MM-DD" + "_connect_codes.json"
+    FILE FORMAT :- [api_key, api_secret, access_key] (extract through JSON)
+    USER :- Run the method. Login into Zerodha. Paste the redirected URL here.
+    """
+    kc = KiteConnect(os.environ["ZERODHA_API_KEY"])
+    webbrowser.open_new_tab(kc.login_url())
+    request_token_url = input("Please Enter request token url\n")
+    parsed_url = urlparse(request_token_url)
+    request_token = parse_qs(parsed_url.query)['request_token'][0]
+    print(request_token)
+    kc.generate_session(request_token, os.environ["ZERODHA_API_SECRET"])
+
+    print("Login Sucessful! \n Welcome {}".format(kc.profile()['user_name']))
+
+    with open(constants.ZERODHA_CREDENTIALS_FILE, "w") as f:
+        json.dump([kc.access_token], f)
+
+    logger.info("Access Token created and stored at {}".format(constants.ZERODHA_CREDENTIALS_FILE))
+    return kc
 
 
 def login_url():
@@ -87,7 +117,7 @@ def login_with_request_token(request_token):
     kc.generate_session(request_token, os.environ["ZERODHA_API_SECRET"])
     print("Login Sucessful! \n Welcome {}".format(kc.profile()['user_name']))
 
-    with open(CREDENTIALS_FILE, "w") as f:
+    with open(constants.ZERODHA_CREDENTIALS_FILE, "w") as f:
         json.dump([kc.access_token], f)
     logger.info("Access Token created and stored")
 
@@ -116,3 +146,5 @@ def login_with_request_token(request_token):
 
     # return 200, 'Logged In'
 
+if __name__ == '__main__':
+    login_with_terminal()
