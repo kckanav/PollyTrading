@@ -33,7 +33,7 @@ def run():
     whatsapp.inform_user("PollyTrading has been started.")
 
     all_symbols_list = prepare(filter)
-    whatsapp.inform_user("Setup complete")
+    whatsapp.inform_user("Setup complete!!")
 
     instrument_list_for_zerodha = []
     instrument_token_to_name_map = dict()
@@ -64,7 +64,6 @@ def run():
                 message = msg_string_helper(alerts)
                 whatsapp.inform_user(message, is_li = True)
 
-        print(all_symbols_list[0])
         excelwriter.write_to_trade(all_symbols_list)
         logger.info("Successfully written at {}".format(datetime.datetime.now()))
         time.sleep(10)
@@ -89,6 +88,7 @@ def msg_string_helper(actionable_symbols):
             msg += "   " + data + ":- " + data_points[data] + "\n"
         message_list.append(msg)
         return message_list
+
 
 
 def prepare(filter):

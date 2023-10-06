@@ -94,7 +94,7 @@ def msg():
 
     if body.lower() == 'start':
         resp.message("Okay")
-        k = subprocess.Popen(['python3', 'start_application.py'], stdin = subprocess.DEVNULL,
+        k = subprocess.Popen(['polly_env/bin/python', 'start_application.py'], stdin = subprocess.DEVNULL,
                              stdout = open('nohup_test.out', 'w'), stderr = subprocess.STDOUT, start_new_session = True,
                              preexec_fn = (lambda: signal.signal(signal.SIGHUP, signal.SIG_IGN)))
 
