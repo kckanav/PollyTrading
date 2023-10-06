@@ -14,6 +14,10 @@ import subprocess, signal
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
+file_handler = logging.FileHandler('server.log')
+formatter = logging.Formatter('%(asctime)s:%(name)s:%(message)s')
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
 
 ALLOWED_EXTENSIONS = {'xlsx'}
 
@@ -31,6 +35,7 @@ def index():
     current_state['isLoggedIn'] = zerodha.logged_in()
     current_state['isFileUploaded'] = history.is_file_generated()
     count['count'] += 1
+    logger.info("new login")
     return render_template("index.html", data = current_state)
 
 
