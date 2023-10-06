@@ -2,7 +2,7 @@ import constants
 from api import zerodha
 
 
-def update(symbol, quote):
+def update(symbol, quote, quantity_delta_perc):
     curr_vol = quote[zerodha.ZER_VOLUME]
     timestamp = quote[zerodha.ZER_TIMESTAMP]
     current_avg = quote[zerodha.ZER_AVG_PRICE]
@@ -44,7 +44,7 @@ def update(symbol, quote):
 
     price_diff = current_price - symbol.curr_data[symbol.CURRENT_PRICE]
 
-    if symbol.curr_data[symbol.LAST_VOL] != 0 and curr_quantity_delta >= constants.D_QTY_PERCENTAGE_ALERT:
+    if symbol.curr_data[symbol.LAST_VOL] != 0 and curr_quantity_delta >= quantity_delta_perc:
         symbol.actionable = True
         symbol.curr_data[symbol.NUMBER_OF_TICKS] += 1
         message_list.append(symbol)
