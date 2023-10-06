@@ -118,7 +118,7 @@ def msg():
         resp.message("Stopping")
         stop_application()
     else:
-        resp.message("Invalid Request")
+        resp.message(f"Bad Request: {body.lower()}")
     return str(resp)
 
 
@@ -133,6 +133,7 @@ def start_application(d_qty = constants.D_QTY_PERCENTAGE_ALERT, time_interval = 
     k = subprocess.Popen([f'{path}/bin/python3.10', f'start_application.py', str(d_qty), str(time_interval)], stdin = subprocess.DEVNULL,
                          stdout = open('nohup_test.out', 'a'), stderr = subprocess.STDOUT, start_new_session = True,
                          preexec_fn = (lambda: signal.signal(signal.SIGHUP, signal.SIG_IGN)))
+    logger.info(f"process started with {k.pid}")
     current_state['application_running'] = True
     current_state['process'] = k
     current_state['pid'] = k.pid
