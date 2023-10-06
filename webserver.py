@@ -3,11 +3,15 @@ import webbrowser
 
 from flask import Flask, request, render_template, flash, redirect, send_file
 import logging
+
+
+from twilio.twiml.messaging_response import MessagingResponse, Message
+
 from api import zerodha
 from history import history
 from run import run
-from threading import Thread
 import constants
+import subprocess, signal
 
 
 logger = logging.getLogger(__name__)
@@ -20,7 +24,9 @@ app = Flask(__name__)
 current_state = {
   'isFileUploaded': False,
   'isLoggedIn': False,
-  'error_message': ""
+  'error_message': "",
+  'application_running': False,
+  'pid': 0
 }
 
 @app.route("/")
@@ -79,10 +85,29 @@ def ins_list():
   return zerodha.get_instrument_codes()
 
 
-# @app.route("/kill")
-# def kill():
-#   try:
-#     os.kill(44506)
+@app.route("/msg",  methods = ['GET', 'POST'])
+def msg():
+    """Respond to incoming calls with a simple text message."""
+    # Start our TwiML response
+    body = request.values.get('Body', None)
+    resp = MessagingResponse()
+
+    if body.lower() == 'start':
+        resp.message("Okay")
+        k = subprocess.Popen(['python3', 'start_application.py'], stdin = subprocess.DEVNULL,
+                             stdout = open('nohup_test.out', 'w'), stderr = subprocess.STDOUT, start_new_session = True,
+                             preexec_fn = (lambda: signal.signal(signal.SIGHUP, signal.SIG_IGN)))
+
+        current_state['application_running'] = True
+        current_state['pid'] = k.pid
+    elif body.lower() in ["stop", 'end', 'kill'] and current_state['pid'] != 0:
+        resp.message("Stopping")
+        os.kill(current_state['pid'], signal.SIGINT)
+        current_state['application_running'] = False
+        current_state['pid'] = 0
+    else:
+        resp.message("Invalid Request")
+    return str(resp)
 
 
 # @app.route('/start')
@@ -97,5 +122,4 @@ def this_data(data):
 
 
 if __name__ == "__main__":
-    #print(os.path.curdir.title())
-    app.run()
+    app.run(host = "localhost", port = 5001)

@@ -32,7 +32,14 @@ file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 
 
-def get_instrument_codes():
+def quote(li, instance = None):
+    if instance is None:
+        instance = get_kiteconnect_instance()
+
+    return instance.quote(li)
+
+
+def get_instrument_codes(is_needed):
     """
     This method fetches all the instrument codes for the symbols we need.
 
@@ -46,8 +53,7 @@ def get_instrument_codes():
     all_instruments_list = kc.instruments(kc.EXCHANGE_NFO)
     ret_instruments_list = []
     for instrument in all_instruments_list:
-        if instrument[ZER_STRIKE] == 0 and (instrument[ZER_EXPIRY] == constants.EXPIRY_DATE or instrument[
-            ZER_EXPIRY] == constants.EXPIRY_DATE_2) and instrument[ZER_SEGMENT] == ZER_FUTURE_SEGMENT:
+        if is_needed(instrument):
             ret_instruments_list.append(instrument)
 
     logger.info("Instrument Codes Extracted for {} symbols through API".format(len(ret_instruments_list)))
@@ -131,7 +137,6 @@ def login_with_request_token(request_token):
     #     json.dump([kc.access_token], f)
     # logger.info("Access Token created and stored")
 
-
     try:
         kc = KiteConnect(os.environ["ZERODHA_API_KEY"])
         print(request_token)
@@ -155,9 +160,8 @@ def login_with_request_token(request_token):
         logger.error(err)
         return 2, 'Please log in again in some time'
 
-
-
     return 200, 'Logged In'
+
 
 if __name__ == '__main__':
     login_with_terminal()

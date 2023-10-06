@@ -1,172 +1,121 @@
 import datetime
-
 import constants
-from util.symbol import Symbol
-from daily_prep import morning_routine
+
+from history import excel_reader
 from api import zerodha
+
+from run.rules import qtyrule
+from run.storage import excelwriter
+from run.comm import whatsapp
+
 import time
 import logging
-import csv
-from twilio.rest import Client
-import os
+
 
 logger = logging.getLogger(__name__)
+print(__name__)
 logger.setLevel(logging.DEBUG)
 file_handler = logging.FileHandler(constants.RUNTIME_LOG_FILE)
 formatter = logging.Formatter('%(asctime)s:%(name)s:%(message)s')
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 
-account_sid = os.environ["TWILIO_SID"]
-auth_token = os.environ["TWILIO_AUTH_TOKEN"]
-client = Client(account_sid, auth_token)
 
-def send_comm(msg, is_li = False):
-    to_send = ""
-    if is_li:
-        for m in msg:
-            to_send += m
-            to_send += "\n"
-        msg = to_send
-
-    message = client.messages.create(
-        from_= 'whatsapp:+14155238886',
-        body=msg,
-        to=['whatsapp:+919268022112']
-    )
-
-
-def write(symbols: [Symbol]):
-    # field names
-    fields = ['Timestamp', 'OLD OI', 'Lot', 'Top-3', 'O-Cost', 'Cost', 'O-Avg', 'Symbol', 'D.QTY', 'QTY', '% Top-3', '% O-Cost',
-              '% Cost', '% Avg', 'Current', 'Diff', 'Actionable']
-
-    rows = []
-    for symbol in symbols:
-        rows.append(symbol.gen_string_for_trade_xslx())
-
-    # name of csv file
-    filename = constants.RUNTIME_GENERATED_FILE
-
-    # writing to csv file
-    with open(filename, 'a') as csvfile:
-        # creating a csv writer object
-        csvwriter = csv.writer(csvfile)
-
-        # writing the fields
-        csvwriter.writerow(fields)
-
-        # writing the data rows
-        csvwriter.writerows(rows)
-        csvwriter.writerow([])
-
-
-def check_update(symbol, curr_vol, current_avg, timestamp, message_list):
-    # ERROR HANDLING :-
-    # 1. Because the previous volume stored is last trading days
-    # Very Unexpected. Break program and report.
-    error_message = "The volume stored for {} has not been updated. Please update all symbols" \
-                    "by running setup.load_symbols using previous days data.\n" \
-                    "Last Volume Stored :- {} vs Current Volume {}.".format(symbol.name,
-                                                                            symbol.curr_data[symbol.LAST_VOL], curr_vol)
-    assert curr_vol >= symbol.curr_data[symbol.LAST_VOL], error_message
-
-    assert symbol.data[
-               symbol.OLD_OI] is not None, "No OLD OPEN INTEREST stored for {}. Please update all symbols.".format(
-        symbol.name)
-
-    li = ['D.QTY', 'QTY', '% Top-3', '% O-Cost', '% Cost', '% Avg', 'Current', 'Diff']
-
-    last_value = symbol.curr_data[symbol.LAST_VOL] * symbol.curr_data[symbol.LAST_AVG_PRICE]
-    curr_value = current_avg * curr_vol
-    curr_value_delta = curr_value - last_value
-
-    curr_vol_delta = (curr_vol - symbol.curr_data[symbol.LAST_VOL])
-    if curr_vol_delta != 0:
-        current_price = curr_value_delta / curr_vol_delta
-    else:
-        # TODO :- These are the stocks that are banned, as they are not being traded
-        #         It could also be that this stock had no trading.
-        current_price = 0
-
-    curr_qty = curr_vol_delta / symbol.data[symbol.LOT_SIZE]
-
-    curr_quantity_delta = (curr_qty / symbol.data[symbol.OLD_OI])
-
-    top_3_delta = ((current_price - symbol.data[symbol.TOP_3]) / (symbol.data[symbol.TOP_3]))
-
-    old_cost_delta = (symbol.data[symbol.COST] - symbol.data[symbol.O_COST]) / symbol.data[symbol.O_COST]
-
-    cost_delta = (current_price - symbol.data[symbol.COST]) / symbol.data[symbol.COST]
-
-    avg_delta = (current_price - symbol.data[symbol.O_AVG]) / symbol.data[symbol.O_AVG]
-
-    price_diff = current_price - symbol.curr_data[symbol.CURRENT_PRICE]
-
-
-    if symbol.curr_data[symbol.LAST_VOL] != 0 and curr_quantity_delta >= constants.D_QTY_PERCENTAGE_ALERT:
-        symbol.actionable = True
-        logger.info("   Found one at {} with D.QTY = {} ".format(symbol.name, curr_quantity_delta))
-        symbol.curr_data[symbol.NUMBER_OF_TICKS] += 1
-        msg = f"{symbol.name} :- \n   D.QTY = {round(curr_quantity_delta * 100, 2)}%\n   Net Avg Price = {round(current_price, 2)}\n   No. of Chaal = {symbol.curr_data[symbol.NUMBER_OF_TICKS]}"
-        message_list.append(msg)
-    else:
-        symbol.actionable = False
-
-
-    symbol.curr_data[symbol.QTY] = curr_qty
-    symbol.curr_data[symbol.QTY_DELTA] = curr_quantity_delta
-    symbol.curr_data[symbol.TOP_3_DELTA] = top_3_delta
-    symbol.curr_data[symbol.O_COST_DELTA] = old_cost_delta
-    symbol.curr_data[symbol.COST_DELTA] = cost_delta
-    symbol.curr_data[symbol.AVG_DELTA] = avg_delta
-    symbol.curr_data[symbol.PRICE_DIFF] = price_diff
-    symbol.curr_data[symbol.LAST_AVG_PRICE] = current_avg
-    symbol.curr_data[symbol.CURRENT_PRICE] = current_price
-    symbol.curr_data[symbol.LAST_VOL_TIMESTAMP] = timestamp
-    symbol.curr_data[symbol.LAST_VOL] = curr_vol
-
-    return [curr_quantity_delta, curr_qty, top_3_delta, old_cost_delta, cost_delta, avg_delta, current_price,
-            price_diff]
+def filter(instrument):
+    if instrument[zerodha.ZER_STRIKE] == 0 \
+            and instrument[zerodha.ZER_EXPIRY] in [constants.EXPIRY_DATE, constants.EXPIRY_DATE_2] and \
+            instrument[zerodha.ZER_SEGMENT] == zerodha.ZER_FUTURE_SEGMENT:
+        return True
 
 
 def run():
-    all_symbols_list = morning_routine.get_prepared_data()
+    logger.info("Starting The Cyclic Application")
+    whatsapp.inform_user("PollyTrading has been started.")
+
+    all_symbols_list = prepare(filter)
+    whatsapp.inform_user("Setup complete")
 
     instrument_list_for_zerodha = []
     instrument_token_to_name_map = dict()
 
     for symbol in all_symbols_list:
-        instrument_string = symbol.zerodha_info[symbol.EXCHANGE] + ":" + symbol.zerodha_info[symbol.TRADING_SYMBOL]
+        instrument_string = symbol.zerodha_info[zerodha.ZER_EXCHANGE] + ":" + symbol.zerodha_info[zerodha.ZER_TRADING_SYMBOL]
         instrument_list_for_zerodha.append(instrument_string)
-        instrument_token_to_name_map[symbol.zerodha_info[symbol.INSTRUMENT_TOKEN]] = symbol
+        instrument_token_to_name_map[symbol.zerodha_info[zerodha.ZER_INSTRUMENT_TOKEN]] = symbol
 
     kite = zerodha.get_kiteconnect_instance()
-    logger.info("Starting The Cyclic Application")
-    send_comm("PollyTrading has been started.")
+
     count = 0
 
     while True:
-        message_list = []
-        current_quotes = kite.quote(instrument_list_for_zerodha)
+        alerts = []
+        current_quotes = zerodha.quote(instrument_list_for_zerodha, instance = kite)
         for q in current_quotes:
             quote = current_quotes[q]
             symbol = instrument_token_to_name_map[quote[zerodha.ZER_INSTRUMENT_TOKEN]]
-            curr_vol = quote[zerodha.ZER_VOLUME]
-            timestamp = quote[zerodha.ZER_TIMESTAMP]
-            current_avg = quote[zerodha.ZER_AVG_PRICE]
+            alerts = qtyrule.update(symbol, quote)
 
-            check_update(symbol, curr_vol, current_avg, timestamp, message_list)
-
-        write(all_symbols_list)
-        logger.info("Successfully written at {}".format(datetime.datetime.now()))
         if count == 0:
-            send_comm("Setup complete")
             count += 1
         else:
-            if len(message_list) == 0:
-                send_comm("Updated! No Tradeable Actions Found :(")
+            if len(alerts) == 0:
+                whatsapp.inform_user("Updated! No Tradeable Actions Found :(")
             else:
-                send_comm(message_list, is_li = True)
-        time.sleep(constants.TIME_INTERVAL)
+                message = msg_string_helper(alerts)
+                whatsapp.inform_user(message, is_li = True)
 
+        print(all_symbols_list[0])
+        excelwriter.write_to_trade(all_symbols_list)
+        logger.info("Successfully written at {}".format(datetime.datetime.now()))
+        time.sleep(10)
+
+
+def msg_string_helper(actionable_symbols):
+    message_list = []
+    for symbol in actionable_symbols:
+        data_points = {
+            "D.QTY": f"{round(symbol.curr_data[symbol.QTY_DELTA] * 100, 2)}%",
+            "No. of Chaal": f"{symbol.curr_data[symbol.NUMBER_OF_TICKS]}",
+            "% Top-3" : f"{round(symbol.curr_data[symbol.TOP_3_DELTA]* 100, 2)}%",
+            "% O.Cost": f"{round(symbol.curr_data[symbol.O_COST_DELTA]* 100, 2)}%",
+            "% Cost": f"{round(symbol.curr_data[symbol.COST_DELTA ] * 100, 2)}%",
+            "% Avg": f"{round(symbol.curr_data[symbol.AVG_DELTA] * 100, 2)}%",
+            "Net Avg Price": f"{round(symbol.curr_data[symbol.CURRENT_PRICE], 2)}",
+            "Diff": f"{round(symbol.curr_data[symbol.CURRENT_PRICE], 2)}",
+        }
+        logger.info(f"   Found one at {symbol.name} with D.QTY = {round(symbol.curr_data[symbol.QTY_DELTA] * 100, 2)}%")
+        msg = f"{symbol.name} :- \n"
+        for data in data_points:
+            msg += "   " + data + ":- " + data_points[data] + "\n"
+        message_list.append(msg)
+        return message_list
+
+
+def prepare(filter):
+
+    api_li = zerodha.get_instrument_codes(filter)
+    api_dict = {instrument[zerodha.ZER_SYMBOL_NAME]: instrument for instrument in api_li}
+
+    hist_li = excel_reader.load_all_symbols(constants.HISTORY_USER_UPLOADED_FILE)
+
+    for hist_symbol in hist_li:
+
+        curr_api_info = api_dict[hist_symbol.name]
+        hist_symbol.zerodha_info = curr_api_info
+
+        h_lot_size = hist_symbol.data[hist_symbol.LOT_SIZE]
+        z_lot_size = curr_api_info[zerodha.ZER_LOT_SIZE]
+
+        if not h_lot_size == z_lot_size:
+            # We have found a mismatch in lot size between DATA-$ file and Zerodha.
+            logger.warning(
+                f"Lot Size Mismatch! {hist_symbol.name}. Zerodha = {z_lot_size} != {h_lot_size} = History File. "
+                f"Using {z_lot_size}")
+            hist_symbol.data[hist_symbol.LOT_SIZE] = curr_api_info[zerodha.ZER_LOT_SIZE]
+
+        del api_dict[hist_symbol.name]
+
+    for left_symbols in api_dict:
+        logging.warning(f"Did not find {left_symbols} symbol in historical data file")
+
+    return hist_li

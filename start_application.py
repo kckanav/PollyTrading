@@ -1,9 +1,6 @@
 from run import run
-from api import zerodha
-# from history import history
-# from daily_prep import morning_routine
-# from run import run
 import logging
+
 
 logger = logging.getLogger()
 

@@ -34,6 +34,7 @@ class Symbol:
         self.data = {
             self.LOT_SIZE: None, self.TOP_3: None, self.OLD_OI: None, self.O_COST: None, self.COST: None, self.O_AVG: None
         }
+
         self.zerodha_info = {
             self.TRADING_SYMBOL: None, self.INSTRUMENT_TOKEN: None, self.EXCHANGE: None,
         }
@@ -41,6 +42,7 @@ class Symbol:
         self.curr_data = {
             self.LAST_VOL: 0, self.LAST_VOL_TIMESTAMP: None, self.CURRENT_PRICE: 0, self.LAST_AVG_PRICE: 0, self.NUMBER_OF_TICKS: 0
         }
+
         self.actionable = False
 
         if my_dict:
