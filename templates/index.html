@@ -2,14 +2,15 @@
 <html>
 
 <head>
-  <title>Upload File & Login</title>
+  <title>Trading</title>
   <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 
 <body>
-  <div class="container">
+  <div class="action_container">
     <div class="upload-box {% if data['isFileUploaded'] %}checkmark-active{% endif %}">
       <h2>Upload a File</h2>
+      <h3>Current File :- {{ data['last_uploaded_file'] }}</h3>
       <form action="/upload_file" method="post" enctype="multipart/form-data">
         <input type="file" name="file" />
         <input type="submit" value="Upload">
@@ -19,18 +20,44 @@
       {% endif %}
     </div>
 
-    <div class="login-box {% if data['isLoggedIn'] %}checkmark-active{% endif %}">
-      <h2>Zerodha Login</h2>
-      <a href="/login">
-        <button id="login-button" {{ "disabled" if data['isLoggedIn'] else "" }}>Login</button>
+<!--    <div class="login-box {% if data['isLoggedIn'] %}checkmark-active{% endif %}">-->
+<!--      <h2>Zerodha Login</h2>-->
+<!--      <a href="/login">-->
+<!--        <button id="login-button" {{"disabled" if data['isLoggedIn'] else "" }}>Login</button>-->
+<!--      </a>-->
+<!--      {% if data['isLoggedIn'] %}-->
+<!--      <span class="checkmark">&#10003;</span>-->
+<!--      {% endif %}-->
+<!--    </div>-->
+
+    <div class="download-box">
+      <h2>Download Trade File</h2>
+      <a href="/download_trade" download="{{ data['recent_file_name'] }}">
+        <button id="download-button">Download {{data['recent_file_name']}}</button>
       </a>
-      {% if data['isLoggedIn'] %}
-      <span class="checkmark">&#10003;</span>
+    </div>
+
+    <div class="run-box">
+      <h2>Current Status</h2>
+      {% if data['application_running'] %}
+        <h3 class="status">Active (Pid: {{ data['pid'] }})</h3>
+        <a href="/stop_app">
+          <button id="run-button"> Stop Application</button>
+        </a>
+      {% else  %}
+        <h3 class="status">Not Active</h3>
+        <form action="/start_app" method="post" class = 'run-input-fields'>
+          <label for="d_qty">D_QTY % : <input type="number" id="d_qty" name="d_qty" min="2" value="4"> %</label>
+          <label for="time_interval">Time Interval: <input type="number" id="time_interval" name="time_interval" min="1" value="6"> min</label>
+          <button id="stop-button" type="submit">Start Application</button>
+        </form>
       {% endif %}
     </div>
   </div>
 
-  <div class="error-message">{{ data['error_message'] }}</div>
+  <div class="error-message">
+    {{ data['error_message'] }}
+  </div>
 
 </body>
 

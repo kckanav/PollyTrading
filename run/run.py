@@ -15,7 +15,6 @@ import constants
 
 
 logger = logging.getLogger(__name__)
-print(__name__)
 logger.setLevel(logging.DEBUG)
 file_handler = logging.FileHandler(constants.RUNTIME_LOG_FILE)
 formatter = logging.Formatter('%(asctime)s:%(name)s:%(message)s')
@@ -28,7 +27,7 @@ def prepare(token_list_filter):
     api_li = zerodha.get_instrument_codes(token_list_filter)
     api_dict = {instrument[zerodha.ZER_SYMBOL_NAME]: instrument for instrument in api_li}
 
-    hist_li = excel_reader.load_all_symbols(constants.HISTORY_USER_UPLOADED_FILE)
+    hist_li = excel_reader.load_all_symbols(constants.latest_uploaded_file())
 
     for hist_symbol in hist_li:
 
@@ -55,8 +54,8 @@ def prepare(token_list_filter):
 
 def run(time_delay = constants.TIME_INTERVAL, quantity_delta_perc = constants.D_QTY_PERCENTAGE_ALERT):
     try:
-        logger.info("Starting The Cyclic Application")
-        whatsapp.inform_user("PollyTrading has been started.")
+        logger.info(f"Starting The Cyclic Application with alert at {quantity_delta_perc * 100}% every {time_delay / 60} min")
+        whatsapp.inform_user(f"PollyTrading has been started. \n D-QTY = {quantity_delta_perc * 100}% | Time = {time_delay / 60} min")
         whatsapp.inform_admin("Application was started")
 
         all_symbols_list = prepare(filter)
@@ -80,13 +79,15 @@ def run(time_delay = constants.TIME_INTERVAL, quantity_delta_perc = constants.D_
             for q in current_quotes:
                 quote = current_quotes[q]
                 symbol = instrument_token_to_name_map[quote[zerodha.ZER_INSTRUMENT_TOKEN]]
-                alerts = qtyrule.update(symbol, quote, quantity_delta_perc)
+                qtyrule.update(symbol, quote, quantity_delta_perc)
+                if symbol.actionable:
+                    alerts.append(symbol)
 
             if count == 0:
                 count += 1
             else:
                 if len(alerts) == 0:
-                    whatsapp.inform_user("Updated! No Tradeable Actions Found :(")
+                    whatsapp.inform_user("Updated! No actionable symbol found.")
                 else:
                     message = msg_string_helper(alerts)
                     whatsapp.inform_user(message, is_li = True)
@@ -105,20 +106,25 @@ def msg_string_helper(actionable_symbols):
     message_list = []
     for symbol in actionable_symbols:
         data_points = {
-            "D.QTY": f"{round(symbol.curr_data[symbol.QTY_DELTA] * 100, 2)}%",
-            "No. of Chaal": f"{symbol.curr_data[symbol.NUMBER_OF_TICKS]}",
-            "% Top-3" : f"{round(symbol.curr_data[symbol.TOP_3_DELTA]* 100, 2)}%",
-            "% O.Cost": f"{round(symbol.curr_data[symbol.O_COST_DELTA]* 100, 2)}%",
-            "% Cost": f"{round(symbol.curr_data[symbol.COST_DELTA ] * 100, 2)}%",
-            "% Avg": f"{round(symbol.curr_data[symbol.AVG_DELTA] * 100, 2)}%",
-            "Net Avg Price": f"{round(symbol.curr_data[symbol.CURRENT_PRICE], 2)}",
-            "Diff": f"{round(symbol.curr_data[symbol.CURRENT_PRICE], 2)}",
+            "Chaal No.": f"{symbol.curr_data[symbol.NUMBER_OF_TICKS]}",
+            "D.QTY": f"{round(symbol.curr_data[symbol.QTY_DELTA] * 100, 1)}%",
+            "Top-3" : f"{round(symbol.curr_data[symbol.TOP_3_DELTA]* 100, 1)}%",
+            "O.Cost": f"{round(symbol.curr_data[symbol.O_COST_DELTA]* 100, 1)}%",
+            "Cost": f"{round(symbol.curr_data[symbol.COST_DELTA ] * 100, 1)}%",
+            "Avg": f"{round(symbol.curr_data[symbol.AVG_DELTA] * 100, 1)}%",
+            "Current": f"{round(symbol.curr_data[symbol.CURRENT_PRICE], 1)}",
+            "Diff": f"{round(symbol.curr_data[symbol.CURRENT_PRICE], 1)}",
         }
-        logger.info(f"   Found one at {symbol.name} with D.QTY = {round(symbol.curr_data[symbol.QTY_DELTA] * 100, 2)}%")
+
         msg = f"{symbol.name} :- \n"
+        max_len = max([len(data) for data in data_points])
+        initial_offset = 4
+        table_offset = max_len + 4
+
         for data in data_points:
-            msg += "   " + data + ":- " + data_points[data] + "\n"
+            msg += (" " * initial_offset) + data + ":" + (" " * (table_offset - len(data))) + data_points[data] + "\n"
         message_list.append(msg)
+        logger.info(" ".join(message_list))
         return message_list
 
 

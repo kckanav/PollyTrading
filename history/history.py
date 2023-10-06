@@ -89,7 +89,7 @@ def load_all_symbols(file_name = constants.HISTORY_GENERATED_FILE):
     return all_symbols_list
 
 
-def save_and_return_history(in_file=constants.HISTORY_USER_UPLOADED_FILE, marker=DATA_FILE_MARKER, out_file=constants.HISTORY_GENERATED_FILE):
+def save_and_return_history(in_file=constants.latest_uploaded_file(), marker=DATA_FILE_MARKER, out_file=constants.HISTORY_GENERATED_FILE):
     """
     TODO :- Compute the marker based on the name of the in_file. Eg:- if it contains TRADE, marker is Trade instead
             explicitly asking for a marker as a parameter.

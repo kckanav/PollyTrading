@@ -24,30 +24,38 @@ ALLOWED_EXTENSIONS = {'xlsx'}
 app = Flask(__name__)
 
 current_state = {
-    'isFileUploaded': False, 'isLoggedIn': False, 'error_message': "", 'application_running': False, 'pid': 0
+    'isFileUploaded': False, 'isLoggedIn': False, 'error_message': "", 'recent_file_name': None,
+    'application_running': False, 'pid': 0, "process": None, "last_uploaded_file": constants.latest_uploaded_file()
 }
 
 count = {"count": 0}
 
 bye = 0
+
+
 @app.route("/")
 def index():
     current_state['isLoggedIn'] = zerodha.logged_in()
-    current_state['isFileUploaded'] = history.is_file_generated()
-    count['count'] += 1
-    logger.info("new login")
+
+    file_name= constants.latest_runtime_trade_file().split("-")
+    current_state['recent_file_name'] = file_name[-1]
+
+    last_uploaded_file = constants.latest_uploaded_file().split("/")
+    current_state['last_uploaded_file'] = last_uploaded_file[-1]
     return render_template("index.html", data = current_state)
 
 
 @app.route('/login_url')
 def login_url():
     print(zerodha.login_url())
+    logger.debug("Login URL requested")
     return zerodha.login_url()
 
 
 @app.route('/login')
 def login():
     print(zerodha.login_url())
+    logger.debug("Redirecting to Login URL")
     return redirect(zerodha.login_url())
 
 
@@ -59,15 +67,13 @@ def upload_file():
         f = request.files['file']
         if f.filename != '':
             f.save(constants.HISTORY_FILE_UPLOAD_DIRECTORY + f.filename)
-            history.save_and_return_history(in_file = f, marker = history.DATA_FILE_MARKER)
-            current_state['isFileUploaded'] = True
 
     return redirect("/")
 
 
 @app.route('/download_trade')
 def download():
-    return send_file(constants.RUNTIME_GENERATED_FILE, as_attachment = True)
+    return send_file(constants.latest_runtime_trade_file(), as_attachment = True)
 
 
 @app.route("/auth")
@@ -83,9 +89,18 @@ def auth():
     return redirect("/")
 
 
-@app.route("/ins")
-def ins_list():
-    return zerodha.get_instrument_codes()
+@app.route("/start_app", methods = ["POST"])
+def start_app():
+    request.args.get('d_qty')
+    d_qty = request.form.get('d_qty', constants.D_QTY_PERCENTAGE_ALERT)
+    time_interval = request.form.get('time_interval', constants.TIME_INTERVAL)
+    start_application(d_qty = d_qty, time_interval = time_interval)
+    return redirect("/")
+
+@app.route("/stop_app")
+def stop_app():
+    stop_application()
+    return redirect("/")
 
 
 @app.route("/msg", methods = ['GET', 'POST'])
@@ -96,28 +111,37 @@ def msg():
     resp = MessagingResponse()
 
     if body.lower() == 'start':
+        # TODO : Start with inital condiations provided. Like, "start 6% 5min"
         resp.message("Okay")
-        k = subprocess.Popen(['polly_env/bin/python', 'start_application.py'], stdin = subprocess.DEVNULL,
-                             stdout = open('nohup_test.out', 'w'), stderr = subprocess.STDOUT, start_new_session = True,
-                             preexec_fn = (lambda: signal.signal(signal.SIGHUP, signal.SIG_IGN)))
-
-        current_state['application_running'] = True
-        current_state['pid'] = k.pid
+        start_application()
     elif body.lower() in ["stop", 'end', 'kill'] and current_state['pid'] != 0:
         resp.message("Stopping")
-        os.kill(current_state['pid'], signal.SIGINT)
-        current_state['application_running'] = False
-        current_state['pid'] = 0
+        stop_application()
     else:
         resp.message("Invalid Request")
     return str(resp)
 
 
-# @app.route('/start')
-# def start():
-#   th = Thread(target = run.run)
-#   th.start()
-#   return "application started"
+# TODO :- Error Handling, Logging
+def start_application(d_qty = constants.D_QTY_PERCENTAGE_ALERT, time_interval = constants.TIME_INTERVAL):
+    try:
+        path = os.environ["CONDA_PREFIX"]
+    except KeyError:
+        logger.debug("not conda")
+        path = {os.environ["VIRTUAL_ENV"]}
+
+    k = subprocess.Popen([f'{path}/bin/python3.10', f'start_application.py', str(d_qty), str(time_interval)], stdin = subprocess.DEVNULL,
+                         stdout = open('nohup_test.out', 'a'), stderr = subprocess.STDOUT, start_new_session = True,
+                         preexec_fn = (lambda: signal.signal(signal.SIGHUP, signal.SIG_IGN)))
+    current_state['application_running'] = True
+    current_state['process'] = k
+    current_state['pid'] = k.pid
+
+
+def stop_application():
+    os.kill(current_state['pid'], signal.SIGINT)
+    current_state['application_running'] = False
+    current_state['pid'] = 0
 
 
 def this_data(data):
