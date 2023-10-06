@@ -2,7 +2,7 @@
 .idea
 polly_env
 __pycache__/
-daily_files/
+historical_data/
 
 # Files
 *.log
