@@ -3,7 +3,7 @@ import webbrowser
 from urllib.parse import urlparse, parse_qs
 
 import constants
-from kiteconnect import KiteConnect
+from kiteconnect import KiteConnect, exceptions
 import json
 import logging
 import os
@@ -24,12 +24,12 @@ ZER_AVG_PRICE = "average_price"
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
+
 file_handler = logging.FileHandler(constants.ZERODHA_LOG_FILE)
 formatter = logging.Formatter('%(asctime)s:%(name)s:%(message)s')
 file_handler.setFormatter(formatter)
+
 logger.addHandler(file_handler)
-
-
 
 
 def get_instrument_codes():
@@ -96,7 +96,17 @@ def login_with_terminal():
 
 def login_url():
     kc = KiteConnect(os.environ["ZERODHA_API_KEY"])
+    logger.info("Possible login started")
     return kc.login_url()
+
+
+def logged_in():
+    try:
+        kc = get_kiteconnect_instance()
+        return True
+    except (exceptions.KiteException, FileNotFoundError):
+        print("here")
+        return False
 
 
 def login_with_request_token(request_token):
@@ -111,40 +121,43 @@ def login_with_request_token(request_token):
     USER :- Run the method. Login into Zerodha. Paste the redirected URL here.
     """
 
-    kc = KiteConnect(os.environ["ZERODHA_API_KEY"])
-    print(request_token)
+    # kc = KiteConnect(os.environ["ZERODHA_API_KEY"])
+    # print(request_token)
 
-    kc.generate_session(request_token, os.environ["ZERODHA_API_SECRET"])
-    print("Login Sucessful! \n Welcome {}".format(kc.profile()['user_name']))
+    # kc.generate_session(request_token, os.environ["ZERODHA_API_SECRET"])
+    # print("Login Sucessful! \n Welcome {}".format(kc.profile()['user_name']))
 
-    with open(constants.ZERODHA_CREDENTIALS_FILE, "w") as f:
-        json.dump([kc.access_token], f)
-    logger.info("Access Token created and stored")
+    # with open(constants.ZERODHA_CREDENTIALS_FILE, "w") as f:
+    #     json.dump([kc.access_token], f)
+    # logger.info("Access Token created and stored")
 
-    # try:
-    #     kc = KiteConnect(os.environ["ZERODHA_API_KEY"])
-    #     print(request_token)
 
-    #     kc.generate_session(request_token, os.environ["ZERODHA_API_SECRET"])
-    #     print("Login Sucessful! \n Welcome {}".format(kc.profile()['user_name']))
+    try:
+        kc = KiteConnect(os.environ["ZERODHA_API_KEY"])
+        print(request_token)
 
-    #     with open(CREDENTIALS_FILE, "w") as f:
-    #         json.dump([kc.access_token], f)
-    #     logger.info("Access Token created and stored")
+        kc.generate_session(request_token, os.environ["ZERODHA_API_SECRET"])
+        print("Login Sucessful! \n Welcome {}".format(kc.profile()['user_name']))
 
-    # except KeyError:
-    #     logger.error("Could not find zerodha environment variables")
-    #     return 500, 'Zerodha credentials not set'
+        with open(constants.ZERODHA_CREDENTIALS_FILE, "w") as f:
+            json.dump([kc.access_token], f)
+        logger.info("Access Token created and stored")
 
-    # except exceptions.KiteException:
-    #     logger.error("KiteException")
-    #     return 500, 'Kite Internal Error'
+    except KeyError as err:
+        logger.error(err)
+        return 1, 'Zerodha credentials not set. Please contact Kanav'
 
-    # except exceptions.TokenException:
-    #     logger.error("Invalid Request Token entered")
-    #     return 500, 'Request Token is invalid or has expired.'
+    except exceptions.TokenException as err:
+        logger.error("Invalid Request Token entered")
+        return 2, 'Please Log in Again'
 
-    # return 200, 'Logged In'
+    except exceptions.KiteException as err:
+        logger.error(err)
+        return 2, 'Please log in again in some time'
+
+
+
+    return 200, 'Logged In'
 
 if __name__ == '__main__':
     login_with_terminal()

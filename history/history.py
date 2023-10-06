@@ -6,6 +6,8 @@ from collections import defaultdict
 import csv
 import xlsxwriter
 import logging
+import os
+
 
 TRADE_FILE_MARKER = 1
 DATA_FILE_MARKER = 2
@@ -52,6 +54,11 @@ file_handler = logging.FileHandler(constants.HISTORY_LOG_FILE)
 formatter = logging.Formatter('%(asctime)s:%(name)s:%(message)s')
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
+
+
+def is_file_generated():
+    print(os.path.exists(constants.HISTORY_GENERATED_FILE))
+    return os.path.exists(constants.HISTORY_GENERATED_FILE)
 
 
 def load_all_symbols(file_name = constants.HISTORY_GENERATED_FILE):

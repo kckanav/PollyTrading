@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Upload File & Login</title>
+  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+
+<body>
+  <div class="container">
+    <div class="upload-box {% if data['isFileUploaded'] %}checkmark-active{% endif %}">
+      <h2>Upload a File</h2>
+      <form action="/upload_file" method="post" enctype="multipart/form-data">
+        <input type="file" name="file" />
+        <input type="submit" value="Upload">
+      </form>
+      {% if data['isFileUploaded'] %}
+      <span class="checkmark">&#10003;</span>
+      {% endif %}
+    </div>
+
+    <div class="login-box {% if data['isLoggedIn'] %}checkmark-active{% endif %}">
+      <h2>Zerodha Login</h2>
+      <a href="/login">
+        <button id="login-button" {{ "disabled" if data['isLoggedIn'] else "" }}>Login</button>
+      </a>
+      {% if data['isLoggedIn'] %}
+      <span class="checkmark">&#10003;</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="error-message">{{ data['error_message'] }}</div>
+
+</body>
+
+</html>

@@ -7,6 +7,8 @@ from api import zerodha
 import time
 import logging
 import csv
+from twilio.rest import Client
+import os
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -14,6 +16,24 @@ file_handler = logging.FileHandler(constants.RUNTIME_LOG_FILE)
 formatter = logging.Formatter('%(asctime)s:%(name)s:%(message)s')
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
+
+account_sid = os.environ["TWILIO_SID"]
+auth_token = os.environ["TWILIO_AUTH_TOKEN"]
+client = Client(account_sid, auth_token)
+
+def send_comm(msg, is_li = False):
+    to_send = ""
+    if is_li:
+        for m in msg:
+            to_send += m
+            to_send += "\n"
+        msg = to_send
+
+    message = client.messages.create(
+        from_= 'whatsapp:+14155238886',
+        body=msg,
+        to=['whatsapp:+919268022112']
+    )
 
 
 def write(symbols: [Symbol]):
@@ -41,7 +61,7 @@ def write(symbols: [Symbol]):
         csvwriter.writerow([])
 
 
-def check_update(symbol, curr_vol, current_avg, timestamp):
+def check_update(symbol, curr_vol, current_avg, timestamp, message_list):
     # ERROR HANDLING :-
     # 1. Because the previous volume stored is last trading days
     # Very Unexpected. Break program and report.
@@ -83,12 +103,16 @@ def check_update(symbol, curr_vol, current_avg, timestamp):
 
     price_diff = current_price - symbol.curr_data[symbol.CURRENT_PRICE]
 
+
     if symbol.curr_data[symbol.LAST_VOL] != 0 and curr_quantity_delta >= constants.D_QTY_PERCENTAGE_ALERT:
         symbol.actionable = True
         logger.info("   Found one at {} with D.QTY = {} ".format(symbol.name, curr_quantity_delta))
         symbol.curr_data[symbol.NUMBER_OF_TICKS] += 1
+        msg = f"{symbol.name} :- \n   D.QTY = {round(curr_quantity_delta * 100, 2)}%\n   Net Avg Price = {round(current_price, 2)}\n   No. of Chaal = {symbol.curr_data[symbol.NUMBER_OF_TICKS]}"
+        message_list.append(msg)
     else:
         symbol.actionable = False
+
 
     symbol.curr_data[symbol.QTY] = curr_qty
     symbol.curr_data[symbol.QTY_DELTA] = curr_quantity_delta
@@ -119,7 +143,11 @@ def run():
 
     kite = zerodha.get_kiteconnect_instance()
     logger.info("Starting The Cyclic Application")
+    send_comm("PollyTrading has been started.")
+    count = 0
+
     while True:
+        message_list = []
         current_quotes = kite.quote(instrument_list_for_zerodha)
         for q in current_quotes:
             quote = current_quotes[q]
@@ -128,9 +156,17 @@ def run():
             timestamp = quote[zerodha.ZER_TIMESTAMP]
             current_avg = quote[zerodha.ZER_AVG_PRICE]
 
-            check_update(symbol, curr_vol, current_avg, timestamp)
+            check_update(symbol, curr_vol, current_avg, timestamp, message_list)
 
         write(all_symbols_list)
         logger.info("Successfully written at {}".format(datetime.datetime.now()))
+        if count == 0:
+            send_comm("Setup complete")
+            count += 1
+        else:
+            if len(message_list) == 0:
+                send_comm("Updated! No Tradeable Actions Found :(")
+            else:
+                send_comm(message_list, is_li = True)
         time.sleep(constants.TIME_INTERVAL)
 

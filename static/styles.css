@@ -8,18 +8,28 @@ body {
   font-family: Arial, sans-serif;
 }
 
-.upload-box {
+.container {
+  display: flex;
+  /* flex-direction: column; */
+  align-items: center;
+}
+
+.upload-box,
+.login-box {
   border: 2px solid #ccc;
-  padding: 20px;
-  width: 300px;
+  padding: 30px;
+  width: 400px;
   text-align: center;
   border-radius: 10px;
   background-color: #f9f9f9;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  margin: 20px;
+  position: relative;
 }
 
-.upload-box h2 {
-  margin-bottom: 10px;
+.upload-box h2,
+.login-box h2 {
+  margin-bottom: 20px;
   color: #333;
 }
 
@@ -30,21 +40,56 @@ form {
 }
 
 input[type="file"],
-input[type="submit"] {
-  padding: 10px;
+input[type="submit"],
+button {
+  padding: 15px;
   margin: 10px 0;
-  font-size: 16px;
+  font-size: 20px;
   width: 80%;
-  max-width: 250px;
+  max-width: 300px;
 }
 
-input[type="submit"] {
+input[type="submit"],
+button {
   background-color: #4CAF50;
   color: white;
   border: none;
   cursor: pointer;
 }
 
-input[type="submit"]:hover {
+input[type="submit"]:hover,
+button:hover {
   background-color: #45a049;
+}
+
+.checkmark {
+  color: #4CAF50;
+  font-size: 36px;
+  display: inline-block;
+  margin-bottom: 20px;
+}
+
+.error-message {
+  color: red;
+  text-align: center;
+  margin-top: 20px;
+  font-size: 18px;
+  width: 100%;
+}
+
+.upload-box.checkmark-active {
+  background-color: #e8f5e9;
+  border: 2px solid #43a047;
+  box-shadow: 0 0 20px rgba(76, 175, 80, 0.7);
+}
+
+.login-box.checkmark-active {
+  background-color: #e8f5e9;
+  border: 2px solid #43a047;
+  box-shadow: 0 0 20px rgba(76, 175, 80, 0.7);
+}
+
+/* Disable pointer events for checkmarks when login button is disabled */
+.login-box button[disabled]+.checkmark {
+  pointer-events: none;
 }

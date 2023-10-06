@@ -1,0 +1,12 @@
+# Directories
+.idea
+polly_env
+__pycache__/
+daily_files/
+
+# Files
+*.log
+*.json
+*.csv
+*.out
+
