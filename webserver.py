@@ -128,7 +128,7 @@ def start_application(d_qty = constants.D_QTY_PERCENTAGE_ALERT, time_interval = 
         path = os.environ["CONDA_PREFIX"]
     except KeyError:
         logger.debug("not conda")
-        path = {os.environ["VIRTUAL_ENV"]}
+        path = os.environ["VIRTUAL_ENV"]
 
     k = subprocess.Popen([f'{path}/bin/python3.10', f'start_application.py', str(d_qty), str(time_interval)], stdin = subprocess.DEVNULL,
                          stdout = open('nohup_test.out', 'a'), stderr = subprocess.STDOUT, start_new_session = True,

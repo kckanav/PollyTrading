@@ -16,7 +16,7 @@ ZERODHA_CREDENTIALS_FILE = ZERODHA_DIR + "/zer_credentials.json"
 
 
 HISTORY_DIR = ROOT_DIR + "/history/daily_files"
-HISTORY_FILE_UPLOAD_DIRECTORY = HISTORY_DIR + "/historical_data"
+HISTORY_FILE_UPLOAD_DIRECTORY = HISTORY_DIR + "/historical_data/"
 
 
 def latest_uploaded_file():

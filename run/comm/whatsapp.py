@@ -35,7 +35,7 @@ def inform_user(msg, is_li = False):
     client.messages.create(
         from_= 'whatsapp:+14155238886',
         body=to_ret,
-        to=kanav_number
+        to=polly_number
     )
     logger.info(f"User Communication: {f'{len(msg)} alert(s) sent' if is_li else msg}")
 
