@@ -70,38 +70,42 @@ def run(time_delay = constants.TIME_INTERVAL, quantity_delta_perc = constants.D_
 
         all_symbols_list, instrument_list_for_zerodha, instrument_token_to_name_map = prepare(filter)
         kite = zerodha.get_kiteconnect_instance()
-        # whatsapp.inform_user("Setup complete!!")
+        whatsapp.inform_user("Setup complete!!")
         whatsapp.inform_admin("Setup complete!!")
 
         while True:
-            alerts = []
-            current_quotes = zerodha.quote(instrument_list_for_zerodha, instance = kite)
-            for q in current_quotes:
-                quote = current_quotes[q]
-                symbol = instrument_token_to_name_map[quote[zerodha.ZER_INSTRUMENT_TOKEN]]
-                qtyrule.update(symbol, quote, quantity_delta_perc)
-                if symbol.actionable:
-                    alerts.append(symbol)
-            if count == 0:
-                # whatsapp.inform_user("Application was started")
-                whatsapp.inform_admin("Application was started")
-                count += 1
-            else:
-                if len(alerts) == 0:
-                    whatsapp.inform_user("Updated. No Tradeable actions found.")
+            try:
+                alerts = []
+                current_quotes = zerodha.quote(instrument_list_for_zerodha, instance = kite)
+                for q in current_quotes:
+                    quote = current_quotes[q]
+                    symbol = instrument_token_to_name_map[quote[zerodha.ZER_INSTRUMENT_TOKEN]]
+                    qtyrule.update(symbol, quote, quantity_delta_perc)
+                    if symbol.actionable:
+                        alerts.append(symbol)
+                if count == 0:
+                    whatsapp.inform_user("Application was started")
+                    whatsapp.inform_admin("Application was started")
+                    count += 1
                 else:
-                    message = msg_string_helper(alerts)
-                    whatsapp.inform_user(message, is_li = True)
-                    whatsapp.inform_admin("something was found")
+                    if len(alerts) == 0:
+                        whatsapp.inform_user("Updated. No Tradeable actions found.")
+                    else:
+                        message = msg_string_helper(alerts)
+                        whatsapp.inform_user(message, is_li = True)
+                        whatsapp.inform_admin("something was found")
 
-            excelwriter.write_to_trade(all_symbols_list)
-            logger.info("Successfully written at {}".format(datetime.datetime.now()))
-            time.sleep(time_delay)
+                excelwriter.write_to_trade(all_symbols_list)
+                logger.info("Successfully written at {}".format(datetime.datetime.now()))
+                time.sleep(time_delay)
+            except KeyboardInterrupt:
+                logger.critical("Application Stopped")
+                whatsapp.inform_user("Stopped Succesfully")
+                whatsapp.inform_admin("The application was stopped")
 
-    except KeyboardInterrupt:
-        logger.critical("Application Stopped")
-        whatsapp.inform_user("Stopped Succesfully")
-        whatsapp.inform_admin("The application was stopped")
+            except Exception as e:
+                whatsapp.inform_admin(f"Error :- {e}")
+                continue
 
     except Exception as e:
         whatsapp.inform_admin(f"Something went wrong :- \n {e}")
@@ -122,16 +126,18 @@ def msg_string_helper(actionable_symbols):
             "Diff": f"{round(symbol.curr_data[symbol.PRICE_DIFF], 1)}",
         }
 
-        msg = f"{symbol.name} :- \n"
+        msg = f"{symbol.name} :- "
         max_len = max([len(data) for data in data_points])
         initial_offset = 4
         table_offset = max_len + 4
 
         for data in data_points:
-            msg += (" " * initial_offset) + data + ":" + (" " * (table_offset - len(data))) + data_points[data] + "\n"
+            msg += "\n" + (" " * initial_offset) + data + ":" + (" " * (table_offset - len(data))) + data_points[data]
         message_list.append(msg)
-        logger.info(" ".join(message_list))
-        return message_list
+    
+    logger.info(" ".join(message_list))
+
+    return message_list
 
 
 def filter(instrument):

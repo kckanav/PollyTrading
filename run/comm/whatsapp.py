@@ -20,7 +20,19 @@ kanav_number = 'whatsapp:+919811302691'
 polly_number = 'whatsapp:+919268022112'
 
 
+# TODO :- Need proper error handling. 
+
 def inform_user(msg, is_li = False):
+    total_alerts = len(msg)
+    msg = format_message(msg, is_li=is_li)
+    client.messages.create(
+        from_= 'whatsapp:+14155238886',
+        body=msg,
+        to=polly_number
+    )
+    logger.info(f"User Communication: {f'{total_alerts} alert(s) sent' if is_li else msg}")
+
+def format_message(msg, is_li = False):
     to_ret = msg
     if is_li:
         str_build = ""
@@ -31,19 +43,13 @@ def inform_user(msg, is_li = False):
             str_build += m
             count += 1
         to_ret = str_build
-
-    client.messages.create(
-        from_= 'whatsapp:+14155238886',
-        body=to_ret,
-        to=polly_number
-    )
-    logger.info(f"User Communication: {f'{len(msg)} alert(s) sent' if is_li else msg}")
+    return to_ret
 
 
 def inform_admin(msg):
-    logger.info(f"Admin communication: {msg}")
     client.messages.create(
         from_= 'whatsapp:+14155238886',
         body=msg,
         to=kanav_number
     )
+    logger.info(f"Admin communication: {msg}")
